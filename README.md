@@ -6,7 +6,7 @@
 
 ## What It Does and Why It Matters
 
-MoodMatch lets a user describe what they want to hear in plain English — *"chill lofi beats for studying"* or *"surprise me with something upbeat"* — and returns five ranked song recommendations with explanations for each match. It demonstrates a complete AI pipeline: natural-language understanding, external data retrieval, intelligent ranking, and user feedback that improves future results.
+MoodMatch lets a user describe what they want to hear in plain English — _"chill lofi beats for studying"_ or _"surprise me with something upbeat"_ — and returns five ranked song recommendations with explanations for each match. It demonstrates a complete AI pipeline: natural-language understanding, external data retrieval, intelligent ranking, and user feedback that improves future results.
 
 The project shows how the core techniques behind commercial music platforms (preference modeling, retrieval-augmented generation, iterative refinement) can be implemented with accessible tools and a small codebase.
 
@@ -66,6 +66,18 @@ User Prompt (natural language)
 ```
 
 The system uses **two RAG sources**: the Spotify Web API retrieves live tracks from an external catalog, and `data/genre_profiles.json` is a custom knowledge-base document that enriches the search query with curated Spotify search terms before any request is made. Together they ground the recommendations in real, current music rather than a fixed internal list.
+
+## Demo Video
+
+- https://www.loom.com/share/6cae6af9d82343a1b783387309a69ed6
+<div>
+   <a href="https://www.loom.com/share/6cae6af9d82343a1b783387309a69ed6">
+     <p>Loom Message - 2 May 2026 - Watch Video</p>
+   </a>
+   <a href="https://www.loom.com/share/6cae6af9d82343a1b783387309a69ed6">
+     <img style="max-width:300px;" src="https://cdn.loom.com/sessions/thumbnails/6cae6af9d82343a1b783387309a69ed6-3b7c6584225dd411-full-play.gif#t=0.1">
+   </a>
+ </div>
 
 ---
 
@@ -130,29 +142,34 @@ Expected output: **15 tests pass**.
 ### Example 1 — Specific genre and activity
 
 **Input:**
+
 > "I want chill lofi music for studying"
 
 **Extracted preferences:**
+
 - Genre: `lofi` · Mood: `chill` · Energy: `0.40` · Activity: `studying`
 
 **Top result:**
+
 > **Midnight Coding** by LoRoom
 > Score: 0.87
-> *"This track fits because it suits your studying session, matches the lofi genre you requested, carries the chill mood you're looking for, and closely matches your energy level."*
+> _"This track fits because it suits your studying session, matches the lofi genre you requested, carries the chill mood you're looking for, and closely matches your energy level."_
 
 ---
 
 ### Example 2 — Random / no specific preference
 
 **Input:**
+
 > "Surprise me with something"
 
 **Behaviour:** No music signals detected → random mode activates. Two genres are picked randomly from a 21-genre pool, Spotify is searched, results are shuffled.
 
 **Sample result:**
+
 > **Blinding Lights** by The Weeknd
 > Score: 0.87 (popularity-based)
-> *"A random Spotify pick — something new to discover!"*
+> _"A random Spotify pick — something new to discover!"_
 
 Each run returns a different shuffle of genres and tracks.
 
@@ -161,21 +178,25 @@ Each run returns a different shuffle of genres and tracks.
 ### Example 3 — Off-topic guardrail
 
 **Input:**
+
 > "Can you write me a Python script to sort a list?"
 
 **Behaviour:** OpenAI sets `is_music_request: false`. No Spotify call is made.
 
 **UI response:**
-> ⚠️ *"This app is for music recommendations only. Try something like: 'chill lofi for studying' or 'surprise me with something upbeat'."*
+
+> ⚠️ _"This app is for music recommendations only. Try something like: 'chill lofi for studying' or 'surprise me with something upbeat'."_
 
 ---
 
 ### Example 4 — Feedback loop
 
 **Input:**
+
 > "High energy rock songs for working out"
 
 **Flow:**
+
 1. Five rock tracks returned, scored by energy match and popularity.
 2. User clicks 👎 Dislike on two tracks with heavy metal vibes.
 3. User clicks 👍 Like on a track with high danceability.
@@ -186,15 +207,15 @@ Each run returns a different shuffle of genres and tracks.
 
 ## Design Decisions and Trade-offs
 
-| Decision | Why | Trade-off |
-|---|---|---|
-| OpenAI for preference extraction | Natural language is too varied for reliable regex alone; structured JSON output via `response_format` gives consistent, typed fields | Adds API cost and latency; keyword fallback ensures the app still works without a key |
-| Spotify Client Credentials (not user OAuth) | Zero friction — no login, no user scope required | Can't access personalized user data like listening history or saved tracks |
-| RAG over pure generation | Grounds recommendations in real, current Spotify catalog instead of the model's training data | Adds network dependency; falls back to local CSV if Spotify is unavailable |
-| Weighted scoring (not ML model) | Transparent, explainable, easy to tune; explanations map directly to score components | Static weights don't adapt to individual users over time |
-| Session-only feedback | Simple; no database or auth needed for a demo | Feedback resets on page refresh; can't learn across sessions |
-| `is_music_request` in extraction schema | Single API call doubles as guardrail; no extra latency | Only works when OpenAI key is present; keyword blocklist is the fallback |
-| Random mode via genre sampling | Spotify has no "random" endpoint; sampling from a genre pool + shuffling gives genuine variety | Results still reflect genre popularity biases in Spotify's index |
+| Decision                                    | Why                                                                                                                                  | Trade-off                                                                             |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| OpenAI for preference extraction            | Natural language is too varied for reliable regex alone; structured JSON output via `response_format` gives consistent, typed fields | Adds API cost and latency; keyword fallback ensures the app still works without a key |
+| Spotify Client Credentials (not user OAuth) | Zero friction — no login, no user scope required                                                                                     | Can't access personalized user data like listening history or saved tracks            |
+| RAG over pure generation                    | Grounds recommendations in real, current Spotify catalog instead of the model's training data                                        | Adds network dependency; falls back to local CSV if Spotify is unavailable            |
+| Weighted scoring (not ML model)             | Transparent, explainable, easy to tune; explanations map directly to score components                                                | Static weights don't adapt to individual users over time                              |
+| Session-only feedback                       | Simple; no database or auth needed for a demo                                                                                        | Feedback resets on page refresh; can't learn across sessions                          |
+| `is_music_request` in extraction schema     | Single API call doubles as guardrail; no extra latency                                                                               | Only works when OpenAI key is present; keyword blocklist is the fallback              |
+| Random mode via genre sampling              | Spotify has no "random" endpoint; sampling from a genre pool + shuffling gives genuine variety                                       | Results still reflect genre popularity biases in Spotify's index                      |
 
 ---
 
@@ -204,17 +225,17 @@ Each run returns a different shuffle of genres and tracks.
 
 ### What is tested
 
-| Area | Tests |
-|---|---|
-| Recommendation scoring and sort order | `test_recommend_returns_songs_sorted_by_score` |
-| Explanation generation | `test_explain_recommendation_returns_non_empty_string` |
-| Keyword preference extraction | 3 tests covering happy/pop, chill/lofi/studying, and high-energy workout |
-| Default fallback values | `test_extract_preferences_falls_back_to_defaults` |
-| OpenAI extraction with mock client | `test_extract_preferences_uses_openai_structured_payload` |
+| Area                                  | Tests                                                                     |
+| ------------------------------------- | ------------------------------------------------------------------------- |
+| Recommendation scoring and sort order | `test_recommend_returns_songs_sorted_by_score`                            |
+| Explanation generation                | `test_explain_recommendation_returns_non_empty_string`                    |
+| Keyword preference extraction         | 3 tests covering happy/pop, chill/lofi/studying, and high-energy workout  |
+| Default fallback values               | `test_extract_preferences_falls_back_to_defaults`                         |
+| OpenAI extraction with mock client    | `test_extract_preferences_uses_openai_structured_payload`                 |
 | OpenAI unavailable → keyword fallback | `test_extract_preferences_openai_unavailable_falls_back_without_crashing` |
-| End-to-end text-to-recommendations | `test_recommend_songs_from_text_returns_explanations` |
-| Spotify auth, search, normalization | 4 tests in `test_spotify_client.py` |
-| KB query enrichment (pop + lofi) | 2 tests verifying KB expands bare genre names into richer Spotify queries |
+| End-to-end text-to-recommendations    | `test_recommend_songs_from_text_returns_explanations`                     |
+| Spotify auth, search, normalization   | 4 tests in `test_spotify_client.py`                                       |
+| KB query enrichment (pop + lofi)      | 2 tests verifying KB expands bare genre names into richer Spotify queries |
 
 ### What worked
 

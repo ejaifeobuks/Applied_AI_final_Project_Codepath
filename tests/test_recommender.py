@@ -1,3 +1,6 @@
+from types import SimpleNamespace
+
+import src.recommender as recommender_module
 from src.recommender import (
     Song,
     UserProfile,
@@ -88,6 +91,7 @@ def test_extract_preferences_from_chill_study_text():
     assert preferences.genre == "lofi"
     assert preferences.mood == "chill"
     assert preferences.energy == 0.4
+    assert preferences.activity_context == "studying"
     assert "lofi" in preferences.search_terms
 
 
@@ -101,6 +105,61 @@ def test_extract_preferences_falls_back_to_defaults():
     assert user_profile.favorite_genre == ""
     assert user_profile.favorite_mood == ""
     assert user_profile.target_energy == 0.5
+
+
+def test_extract_preferences_from_high_energy_workout_text():
+    preferences = extract_preferences_from_text("high energy rock workout songs", use_openai=False)
+
+    assert preferences.genre == "rock"
+    assert preferences.energy == 0.9
+    assert preferences.energy_level == "high"
+    assert preferences.activity_context == "workout"
+
+
+def test_extract_preferences_openai_unavailable_falls_back_without_crashing(monkeypatch):
+    monkeypatch.setattr(recommender_module, "_build_openai_client", lambda: None)
+
+    preferences = extract_preferences_from_text("chill lofi music for studying")
+
+    assert preferences.genre == "lofi"
+    assert preferences.mood == "chill"
+    assert preferences.extraction_source == "keyword"
+
+
+def test_extract_preferences_uses_openai_structured_payload():
+    class FakeCompletions:
+        def create(self, **kwargs):
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(
+                            content=(
+                                '{"is_music_request":true,'
+                                '"genres":["rock"],'
+                                '"moods":["intense"],'
+                                '"energy_level":"high",'
+                                '"activity_context":"workout",'
+                                '"acoustic_preference":"avoid",'
+                                '"search_terms":["rock","workout","high energy"]}'
+                            )
+                        )
+                    )
+                ]
+            )
+
+    fake_client = SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions()))
+    preferences = extract_preferences_from_text(
+        "high energy rock workout songs",
+        openai_client=fake_client,
+    )
+
+    assert preferences.genre == "rock"
+    assert preferences.mood == "intense"
+    assert preferences.energy == 0.85
+    assert preferences.activity_context == "workout"
+    assert preferences.acoustic_preference == "avoid"
+    assert preferences.extraction_source == "openai"
+    assert "high energy" in preferences.search_terms
 
 
 def test_recommend_songs_from_text_returns_explanations():

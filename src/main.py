@@ -4,13 +4,27 @@ Command line runner for the Music Recommender Simulation.
 This file helps you quickly run and test your recommender.
 """
 
-from recommender import (
-    extract_preferences_from_text,
-    load_songs,
-    recommend_songs,
-    recommend_songs_from_text,
-)
-from spotify_client import SpotifyClient, build_search_query, spotify_track_to_song_dict
+
+try:
+    from .recommender import (
+        extract_preferences_from_text,
+        load_songs,
+        recommend_songs,
+        recommend_songs_from_text,
+    )
+    from .spotify_client import (
+        SpotifyClient,
+        build_search_query,
+        spotify_track_to_song_dict,
+    )
+except ImportError:
+    from recommender import (
+        extract_preferences_from_text,
+        load_songs,
+        recommend_songs,
+        recommend_songs_from_text,
+    )
+    from spotify_client import SpotifyClient, build_search_query, spotify_track_to_song_dict
 
 
 def print_recommendations(title: str, recommendations: list[tuple[dict, float, str]]) -> None:
@@ -48,8 +62,12 @@ def main() -> None:
         print(f"  Genre: {extracted.genre or 'none'}")
         print(f"  Mood: {extracted.mood or 'none'}")
         print(f"  Energy: {extracted.energy:.2f}")
+        print(f"  Energy level: {extracted.energy_level}")
+        print(f"  Activity: {extracted.activity_context or 'none'}")
+        print(f"  Acoustic preference: {extracted.acoustic_preference}")
         print(f"  Likes acoustic: {extracted.likes_acoustic}")
         print(f"  Search terms: {', '.join(extracted.search_terms) or 'none'}")
+        print(f"  Extraction source: {extracted.extraction_source}")
 
         spotify_client = SpotifyClient()
         if spotify_client.has_credentials():

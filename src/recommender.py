@@ -1,6 +1,11 @@
-from typing import List, Dict, Tuple, Optional
+from __future__ import annotations
+
 import csv
-from dataclasses import dataclass
+import json
+import os
+import sys
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
 
 
 GENRE_KEYWORDS = {
@@ -70,6 +75,7 @@ class UserProfile:
     favorite_mood: str
     target_energy: float
     likes_acoustic: bool
+    activity_context: str = ""
 
 
 @dataclass
@@ -81,6 +87,13 @@ class ExtractedPreferences:
     likes_acoustic: bool
     raw_text: str
     search_terms: List[str]
+    genres: List[str] = field(default_factory=list)
+    moods: List[str] = field(default_factory=list)
+    energy_level: str = "medium"
+    activity_context: str = ""
+    acoustic_preference: str = "neutral"
+    extraction_source: str = "keyword"
+    is_music_request: bool = True
 
 
 class Recommender:
@@ -95,9 +108,11 @@ class Recommender:
     def recommend(self, user: UserProfile, k: int = 5) -> List[Tuple[Song, float, str]]:
         """Rank songs for a user and return the top matches with explanations."""
         weights = {
-            "genre": 0.2,
-            "mood": 0.3,
-            "energy": 0.5,
+            "genre": 0.20,
+            "mood": 0.20,
+            "energy": 0.35,
+            "acousticness": 0.10,
+            "popularity": 0.15,
         }
 
         scored_songs = []
@@ -105,12 +120,16 @@ class Recommender:
         for song in self.songs:
             genre_score = 1.0 if song.genre == user.favorite_genre else 0.0
             mood_score = 1.0 if song.mood == user.favorite_mood else 0.0
-            energy_score = 1 - abs(user.target_energy - song.energy)
+            energy_score = 1.0 - abs(user.target_energy - song.energy)
+            acousticness_score = song.acousticness if user.likes_acoustic else (1.0 - song.acousticness)
+            popularity_score = song.popularity / 100.0
 
             total_score = (
-                weights["genre"] * genre_score +
-                weights["mood"] * mood_score +
-                weights["energy"] * energy_score
+                weights["genre"] * genre_score
+                + weights["mood"] * mood_score
+                + weights["energy"] * energy_score
+                + weights["acousticness"] * acousticness_score
+                + weights["popularity"] * popularity_score
             )
             scored_songs.append((song, total_score))
 
@@ -128,28 +147,107 @@ class Recommender:
         """Explain why a song matches a user's preferences."""
         reasons = []
 
-        if song.genre == user.favorite_genre:
-            reasons.append(f"it's in the '{song.genre}' genre you like")
+        if user.activity_context:
+            reasons.append(f"suits your {user.activity_context} session")
 
-        if song.mood == user.favorite_mood:
-            reasons.append(f"it has the '{song.mood}' mood you're looking for")
+        if song.genre and song.genre == user.favorite_genre:
+            reasons.append(f"matches the {song.genre} genre you requested")
+
+        if song.mood and song.mood == user.favorite_mood:
+            reasons.append(f"carries the {song.mood} mood you're looking for")
 
         energy_diff = abs(user.target_energy - song.energy)
         if energy_diff < 0.1:
-            reasons.append("it has a very similar energy level")
-        elif energy_diff < 0.2:
-            reasons.append("it has a similar energy level")
+            reasons.append("closely matches your energy level")
+        elif energy_diff < 0.25:
+            reasons.append("has a similar energy level")
+
+        if user.likes_acoustic and song.acousticness >= 0.6:
+            reasons.append("has a strong acoustic quality")
+        elif not user.likes_acoustic and song.acousticness <= 0.3:
+            reasons.append("has a clean produced sound")
+
+        if song.popularity >= 70:
+            reasons.append(f"is a well-known track ({song.popularity}/100 popularity)")
 
         if not reasons:
-            return "It's a potential match based on a combination of factors."
+            return "Matches a combination of your preferences."
 
-        explanation = "Because " + " and ".join(reasons) + "."
-        return explanation.capitalize()
+        if len(reasons) == 1:
+            return f"This track fits because {reasons[0]}."
+
+        return f"This track fits because {', '.join(reasons[:-1])} and {reasons[-1]}."
 
 
-def extract_preferences_from_text(text: str) -> ExtractedPreferences:
+def _dedupe_terms(terms: List[str]) -> List[str]:
+    return list(dict.fromkeys(term for term in terms if term))
+
+
+def _energy_to_label(energy: float) -> str:
+    if energy >= 0.75:
+        return "high"
+    if energy <= 0.35:
+        return "low"
+    return "medium"
+
+
+def _normalize_preferences(
+    *,
+    raw_text: str,
+    genre: str,
+    mood: str,
+    energy: float,
+    likes_acoustic: bool,
+    search_terms: List[str],
+    genres: Optional[List[str]] = None,
+    moods: Optional[List[str]] = None,
+    energy_level: str = "",
+    activity_context: str = "",
+    acoustic_preference: str = "",
+    extraction_source: str = "keyword",
+    is_music_request: bool = True,
+) -> ExtractedPreferences:
+    normalized_genres = _dedupe_terms(genres or ([genre] if genre else []))
+    normalized_moods = _dedupe_terms(moods or ([mood] if mood else []))
+    normalized_search_terms = _dedupe_terms(search_terms)
+    resolved_acoustic_preference = acoustic_preference or (
+        "prefer" if likes_acoustic else "neutral"
+    )
+
+    return ExtractedPreferences(
+        genre=genre,
+        mood=mood,
+        energy=max(0.0, min(1.0, energy)),
+        likes_acoustic=likes_acoustic,
+        raw_text=raw_text,
+        search_terms=normalized_search_terms,
+        genres=normalized_genres,
+        moods=normalized_moods,
+        energy_level=energy_level or _energy_to_label(energy),
+        activity_context=activity_context,
+        acoustic_preference=resolved_acoustic_preference,
+        extraction_source=extraction_source,
+        is_music_request=is_music_request,
+    )
+
+
+_NON_MUSIC_PATTERNS = [
+    "recipe", "ingredient", "how to cook", "bake",
+    "write code", "debug", "fix my", "python script", "javascript",
+    "weather", "forecast", "temperature outside",
+    "movie", "film recommendation", "tv show", "netflix",
+    "book recommendation", "novel", "read me",
+    "write a poem", "write an essay", "write a story",
+    "math problem", "calculate", "what is 2",
+    "sports score", "who won",
+    "news", "latest news",
+]
+
+
+def _extract_preferences_keyword_fallback(text: str) -> ExtractedPreferences:
     """Convert a natural-language request into structured recommender inputs."""
     normalized = text.lower().strip()
+    is_music_request = not any(pattern in normalized for pattern in _NON_MUSIC_PATTERNS)
     genre = ""
     mood = ""
     energy = 0.5
@@ -185,14 +283,161 @@ def extract_preferences_from_text(text: str) -> ExtractedPreferences:
         if "acoustic" not in search_terms:
             search_terms.append("acoustic")
 
-    return ExtractedPreferences(
+    activity_context = ""
+    if any(term in normalized for term in ["study", "studying", "focus", "focused"]):
+        activity_context = "studying"
+    elif any(term in normalized for term in ["workout", "gym", "exercise", "run", "running"]):
+        activity_context = "workout"
+    elif any(term in normalized for term in ["sleep", "bedtime"]):
+        activity_context = "sleep"
+    elif any(term in normalized for term in ["drive", "driving", "road trip"]):
+        activity_context = "driving"
+
+    acoustic_preference = "prefer" if likes_acoustic else "neutral"
+
+    return _normalize_preferences(
+        raw_text=text,
         genre=genre,
         mood=mood,
         energy=energy,
         likes_acoustic=likes_acoustic,
-        raw_text=text,
         search_terms=search_terms,
+        genres=[genre] if genre else [],
+        moods=[mood] if mood else [],
+        activity_context=activity_context,
+        acoustic_preference=acoustic_preference,
+        extraction_source="keyword",
+        is_music_request=is_music_request,
     )
+
+
+def _normalize_openai_payload(text: str, payload: Dict[str, Any]) -> ExtractedPreferences:
+    is_music_request = bool(payload.get("is_music_request", True))
+    genres = [str(item).strip().lower() for item in payload.get("genres", []) if str(item).strip()]
+    moods = [str(item).strip().lower() for item in payload.get("moods", []) if str(item).strip()]
+    search_terms = [
+        str(item).strip().lower()
+        for item in payload.get("search_terms", [])
+        if str(item).strip()
+    ]
+    activity_context = str(payload.get("activity_context", "")).strip().lower()
+    energy_level = str(payload.get("energy_level", "")).strip().lower()
+    acoustic_preference = str(payload.get("acoustic_preference", "")).strip().lower()
+
+    energy_lookup = {"low": 0.25, "medium": 0.5, "high": 0.85}
+    energy = energy_lookup.get(energy_level, 0.5)
+    likes_acoustic = acoustic_preference == "prefer"
+
+    if activity_context and activity_context not in search_terms:
+        search_terms.append(activity_context)
+
+    return _normalize_preferences(
+        raw_text=text,
+        genre=genres[0] if genres else "",
+        mood=moods[0] if moods else "",
+        energy=energy,
+        likes_acoustic=likes_acoustic,
+        search_terms=search_terms + genres + moods,
+        genres=genres,
+        moods=moods,
+        energy_level=energy_level,
+        activity_context=activity_context,
+        acoustic_preference=acoustic_preference or "neutral",
+        extraction_source="openai",
+        is_music_request=is_music_request,
+    )
+
+
+def _extract_preferences_with_openai(
+    text: str,
+    openai_client: Any,
+    model: str = "gpt-4.1-mini",
+) -> ExtractedPreferences:
+    response_format = {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "music_preferences",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "is_music_request": {"type": "boolean"},
+                    "genres": {"type": "array", "items": {"type": "string"}},
+                    "moods": {"type": "array", "items": {"type": "string"}},
+                    "energy_level": {"type": "string", "enum": ["low", "medium", "high"]},
+                    "activity_context": {"type": "string"},
+                    "acoustic_preference": {
+                        "type": "string",
+                        "enum": ["prefer", "avoid", "neutral"],
+                    },
+                    "search_terms": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": [
+                    "is_music_request",
+                    "genres",
+                    "moods",
+                    "energy_level",
+                    "activity_context",
+                    "acoustic_preference",
+                    "search_terms",
+                ],
+                "additionalProperties": False,
+            },
+            "strict": True,
+        },
+    }
+
+    response = openai_client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a music preference extractor. "
+                    "Set is_music_request to false if the user is NOT asking for music "
+                    "recommendations (e.g. asking for recipes, coding help, math, weather, "
+                    "movies, jokes, or anything unrelated to finding songs). "
+                    "Otherwise set it to true and extract the remaining fields."
+                ),
+            },
+            {"role": "user", "content": text},
+        ],
+        response_format=response_format,
+    )
+    content = response.choices[0].message.content
+    payload = json.loads(content)
+    if not payload:
+        raise ValueError("OpenAI response did not contain structured preference data.")
+    return _normalize_openai_payload(text, payload)
+
+
+def _build_openai_client() -> Any:
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return None
+
+    try:
+        from openai import OpenAI
+    except ImportError:
+        return None
+
+    return OpenAI(api_key=api_key)
+
+
+def extract_preferences_from_text(
+    text: str,
+    openai_client: Any = None,
+    use_openai: bool = True,
+    model: str = "gpt-4.1-mini",
+) -> ExtractedPreferences:
+    if use_openai:
+        client = openai_client if openai_client is not None else _build_openai_client()
+        if client is not None:
+            try:
+                return _extract_preferences_with_openai(text, client, model=model)
+            except Exception as exc:
+                print(f"OpenAI extraction failed, using keyword fallback: {exc}", file=sys.stderr)
+
+    return _extract_preferences_keyword_fallback(text)
 
 
 def preferences_to_user_profile(preferences: ExtractedPreferences) -> UserProfile:
@@ -202,6 +447,7 @@ def preferences_to_user_profile(preferences: ExtractedPreferences) -> UserProfil
         favorite_mood=preferences.mood,
         target_energy=preferences.energy,
         likes_acoustic=preferences.likes_acoustic,
+        activity_context=preferences.activity_context,
     )
 
 

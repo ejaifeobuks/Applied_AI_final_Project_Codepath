@@ -83,14 +83,20 @@ class SpotifyClient:
 
 
 def build_search_query(preferences: "ExtractedPreferences") -> str:
-    """Build a Spotify search query from extracted user preferences."""
-    terms = list(preferences.search_terms)
-    if preferences.genre and preferences.genre not in terms:
+    """Build a Spotify search query from extracted user preferences.
+
+    Only uses genuine music signals (genre, mood, activity context) so that
+    filler words like 'random' or 'surprise' are never sent to Spotify.
+    Returns an empty string when no signals are present, signalling the caller
+    to skip the Spotify path and fall back to the local catalog.
+    """
+    terms: list[str] = []
+    if preferences.genre:
         terms.append(preferences.genre)
-    if preferences.mood and preferences.mood not in terms:
+    if preferences.mood:
         terms.append(preferences.mood)
-    if not terms:
-        terms.append(preferences.raw_text.strip() or "music")
+    if preferences.activity_context and preferences.activity_context not in terms:
+        terms.append(preferences.activity_context)
     return " ".join(terms)
 
 

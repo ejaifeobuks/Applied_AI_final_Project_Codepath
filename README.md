@@ -1,142 +1,267 @@
-# 🎵 Music Recommender Simulation
+# MoodMatch — Natural-Language Music Recommender
 
-## Project Summary
-
-This project builds a small content-based music recommender that ranks songs from `data/songs.csv` based on a user's preferred genre, mood, and energy level. It shows how recommendation systems turn simple song features into personalized suggestions and how different user profiles can produce different results.
+> Built on top of **VibeFinder CLI**, a content-based music recommender that ranked songs from a local CSV catalog using genre, mood, and energy preferences. VibeFinder established the core scoring and explanation logic, and tested the idea that a small set of audio features could produce meaningful, explainable recommendations. MoodMatch extends that foundation into a full AI-powered application with natural-language input, live Spotify search, and an interactive feedback loop.
 
 ---
 
-## How The System Works
+## What It Does and Why It Matters
 
-This recommender uses a **content-based filtering** approach. For each user profile, it compares every song in the catalog with the user's preferred genre, mood, and target energy.
+MoodMatch lets a user describe what they want to hear in plain English — *"chill lofi beats for studying"* or *"surprise me with something upbeat"* — and returns five ranked song recommendations with explanations for each match. It demonstrates a complete AI pipeline: natural-language understanding, external data retrieval, intelligent ranking, and user feedback that improves future results.
 
-- **Song features used:** The main scoring logic uses `genre`, `mood`, and `energy` from `data/songs.csv`.
-- **User profile information:** The user profile stores the preferred genre, preferred mood, and target energy, for example `{"genre": "pop", "mood": "happy", "energy": 0.8}`.
-- **Scoring mechanism:** Each song gets an individual score for genre, mood, and energy. Genre and mood are binary matches, while energy is scored by proximity using `1 - abs(user_preference - song_value)`.
-- **Weighted total:** The final score is a weighted average:
-
-  `Total Score = (0.2 * genre_score) + (0.3 * mood_score) + (0.5 * energy_score)`
-
-- **Choosing recommendations:** After scoring the full catalog, the system sorts songs from highest to lowest score and returns the top results for that user.
+The project shows how the core techniques behind commercial music platforms (preference modeling, retrieval-augmented generation, iterative refinement) can be implemented with accessible tools and a small codebase.
 
 ---
 
-## Getting Started
+## Architecture Overview
 
-### Setup
+```
+User Prompt (natural language)
+        │
+        ▼
+┌─────────────────────┐
+│  Preference         │  OpenAI (gpt-4.1-mini) extracts genre, mood,
+│  Extractor          │  energy, activity context, acoustic preference,
+│                     │  and is_music_request guardrail flag.
+│  Keyword fallback   │  If no API key, regex-style keyword matching.
+└────────┬────────────┘
+         │ ExtractedPreferences
+         ▼
+┌─────────────────────┐
+│  Guardrail Check    │  Blocks non-music requests (recipes, code help,
+│                     │  math, etc.) before hitting any external API.
+└────────┬────────────┘
+         │ valid request
+         ▼
+┌─────────────────────┐        ┌──────────────────────┐
+│  Spotify Search     │        │  Local CSV Catalog   │
+│  (RAG retrieval)    │──────▶ │  Fallback (20 songs) │
+│                     │  fail  └──────────────────────┘
+│  Client Credentials │
+│  OAuth → Search API │
+└────────┬────────────┘
+         │ up to 10 tracks
+         ▼
+┌─────────────────────┐
+│  Recommender        │  Weighted scoring:
+│  Scorer             │  genre 20% · mood 20% · energy 35%
+│                     │  acousticness 10% · popularity 15%
+└────────┬────────────┘
+         │ ranked (song, score, explanation)
+         ▼
+┌─────────────────────┐
+│  Streamlit UI       │  Displays results with 👍 Like / 👎 Dislike /
+│  + Feedback Loop    │  ⏭ Skip buttons. "Refresh" re-ranks with
+│                     │  adjusted preferences based on feedback.
+└─────────────────────┘
+```
 
-1. Create a virtual environment (optional but recommended):
+The Spotify integration is the **RAG** component: the system retrieves real tracks from an external source before generating its ranked, explained response — rather than answering from a fixed internal catalog alone.
 
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate      # Mac or Linux
-   .venv\Scripts\activate         # Windows
+---
 
-   ```
+## Setup Instructions
 
-2. Install dependencies
+### Prerequisites
+
+- Python 3.10+
+- A [Spotify Developer](https://developer.spotify.com/dashboard) account (free) for live search
+- An OpenAI API key (optional — the app works without one using keyword extraction)
+
+### 1. Clone and install dependencies
 
 ```bash
+git clone <your-repo-url>
+cd Applied_AI_final_Project_Codepath.git
 pip install -r requirements.txt
 ```
 
-3. Run the app:
+### 2. Set environment variables
+
+Create a `.env` file in the project root, or export variables in your shell:
+
+```bash
+# Required for live Spotify search
+SPOTIFY_CLIENT_ID=your_client_id_here
+SPOTIFY_CLIENT_SECRET=your_client_secret_here
+
+# Optional — enables OpenAI preference extraction
+OPENAI_API_KEY=your_openai_key_here
+```
+
+> Without Spotify credentials the app falls back to the local 20-song CSV catalog.
+> Without an OpenAI key it uses keyword matching for preference extraction.
+
+### 3. Run the Streamlit app
+
+```bash
+streamlit run src/app.py
+```
+
+Open `http://localhost:8501` in your browser.
+
+### 4. (Optional) Run the CLI version
 
 ```bash
 python -m src.main
 ```
 
-### Running Tests
-
-Run the starter tests with:
+### 5. Run the test suite
 
 ```bash
-pytest
+pytest -v
 ```
 
-You can add more tests in `tests/test_recommender.py`.
+Expected output: **14 tests pass**.
 
 ---
 
-## Experiments You Tried
+## Sample Interactions
 
-The starter app tests several different user profiles to show how the rankings change:
+### Example 1 — Specific genre and activity
 
-- Happy Pop Fan
-  ![alttext](Profile-1.png)
-- Intense Rock Fan
-  ![alttext](Profile_4.png)
-- Chill Lofi Fan
-  ![alttext](Profile_3.png)
-- Peaceful Classical Fan
-  ![alttext](profile_2.png)
+**Input:**
+> "I want chill lofi music for studying"
 
----
+**Extracted preferences:**
+- Genre: `lofi` · Mood: `chill` · Energy: `0.40` · Activity: `studying`
 
-## Limitations and Risks
-
-The current recommender has a few important limits:
-
-- It only uses a small song catalog, so the recommendation space is limited.
-- It only scores three features directly, so it ignores other useful signals like lyrics, artist popularity, or instrumentation.
-- The heavy energy weight means the system can favor energy matches even when genre or mood are less aligned.
-- The dataset can create bias if some genres or moods are underrepresented.
+**Top result:**
+> **Midnight Coding** by LoRoom
+> Score: 0.87
+> *"This track fits because it suits your studying session, matches the lofi genre you requested, carries the chill mood you're looking for, and closely matches your energy level."*
 
 ---
 
-## Personal Reflection
+### Example 2 — Random / no specific preference
 
-Building this recommender made it easier to understand how platforms like Spotify and YouTube Music predict what users will love next. They do not rely on just one signal; they combine content-based filtering, which looks at the properties of a song, with behavior-based signals that come from how people actually use the platform.
+**Input:**
+> "Surprise me with something"
 
-In content-based filtering, the system compares a song's features to the kinds of songs a user already seems to like. In music apps, those features can include tempo, mood, energy, genre, valence, and sometimes acousticness or danceability. The broader prediction systems also use interaction data such as likes, skips, replays, playlist adds, search history, and listening time to guess what the user may enjoy next.
+**Behaviour:** No music signals detected → random mode activates. Two genres are picked randomly from a 20-genre pool, Spotify is searched, results are shuffled.
 
-I also learned that bias in recommenders is not only about intent. It can come from what the system cannot see, such as lyrics, artist context, or why a user skipped a song. That makes human judgment important when choosing the data types, setting weights, and deciding whether the final recommendations are actually fair and useful.
+**Sample result:**
+> **Blinding Lights** by The Weeknd
+> Score: 0.87 (popularity-based)
+> *"A random Spotify pick — something new to discover!"*
 
-### Pairwise Output Comparisons
-
-- Happy Pop Fan vs Intense Rock Fan: both profiles prefer high energy, so both include Gym Hero as a cross-genre overlap, but the pop profile stays brighter and more melodic while the rock profile shifts toward heavier, more aggressive songs like Storm Runner and Bass Drop.
-- Happy Pop Fan vs Chill Lofi Fan: the outputs move from upbeat pop songs to quieter study-style tracks, which makes sense because the lofi profile lowers the energy target and changes the mood from happy to chill.
-- Happy Pop Fan vs Peaceful Classical Fan: the pop profile favors lively, modern tracks, while the classical profile shifts toward more serene songs like Ocean Deep and Sunday Morning, showing that lower energy and peaceful mood pull the recommendations away from pop.
-- Intense Rock Fan vs Chill Lofi Fan: this is one of the clearest contrasts because the rock profile favors intense, high-energy songs, while the lofi profile favors soft, low-energy music. The outputs change from Storm Runner and Bass Drop to Midnight Coding and Library Rain, which is exactly what the preferences are testing for.
-- Intense Rock Fan vs Peaceful Classical Fan: both profiles are specific about mood, but they point in opposite directions. The rock profile rewards intensity, while the classical profile rewards calmness, so the songs shift from loud, driving tracks to gentle, reflective ones.
-- Chill Lofi Fan vs Peaceful Classical Fan: these two profiles are both mellow, so their outputs are closer in energy than the other pairs, but the genre preference still separates them. Lofi leans toward ambient, coding, and late-night listening, while classical leans toward orchestral, acoustic, and peaceful listening.
+Each run returns a different shuffle of genres and tracks.
 
 ---
 
-## Model Card
+### Example 3 — Off-topic guardrail
 
-### 1. Model Name
+**Input:**
+> "Can you write me a Python script to sort a list?"
 
-VibeFinder CLI
+**Behaviour:** OpenAI sets `is_music_request: false`. No Spotify call is made.
 
-### 2. Intended Use
+**UI response:**
+> ⚠️ *"This app is for music recommendations only. Try something like: 'chill lofi for studying' or 'surprise me with something upbeat'."*
 
-This recommender suggests 3 to 5 songs from a small catalog based on a user's preferred genre, mood, and energy level. It is designed for classroom exploration and testing, not for real users or production use.
+---
 
-### 3. How It Works
+### Example 4 — Feedback loop
 
-The recommender compares each song in `data/songs.csv` to a user's preferences. Genre and mood are scored as matches or non-matches, while energy is scored by how close the song's energy is to the user's target. Those feature scores are combined with weights, and the highest-scoring songs are returned first.
+**Input:**
+> "High energy rock songs for working out"
 
-### 4. Data
+**Flow:**
+1. Five rock tracks returned, scored by energy match and popularity.
+2. User clicks 👎 Dislike on two tracks with heavy metal vibes.
+3. User clicks 👍 Like on a track with high danceability.
+4. User clicks **🔄 Refresh Recommendations**.
+5. Disliked tracks are excluded; `target_energy` nudges 30% toward the liked track's energy; new top-5 returned.
 
-The catalog contains 20 songs. It includes genres such as pop, rock, lofi, classical, electronic, folk, hip-hop, reggae, ambient, acoustic, indie pop, and country, with moods like happy, chill, intense, peaceful, moody, and romantic. The dataset is still small, so it reflects only a narrow slice of musical taste.
+---
 
-### 5. Strengths
+## Design Decisions and Trade-offs
 
-The system is simple and easy to explain. It works well when the user's taste can be described by genre, mood, and energy, and the explanations make it clear why a song was recommended.
+| Decision | Why | Trade-off |
+|---|---|---|
+| OpenAI for preference extraction | Natural language is too varied for reliable regex alone; structured JSON output via `response_format` gives consistent, typed fields | Adds API cost and latency; keyword fallback ensures the app still works without a key |
+| Spotify Client Credentials (not user OAuth) | Zero friction — no login, no user scope required | Can't access personalized user data like listening history or saved tracks |
+| RAG over pure generation | Grounds recommendations in real, current Spotify catalog instead of the model's training data | Adds network dependency; falls back to local CSV if Spotify is unavailable |
+| Weighted scoring (not ML model) | Transparent, explainable, easy to tune; explanations map directly to score components | Static weights don't adapt to individual users over time |
+| Session-only feedback | Simple; no database or auth needed for a demo | Feedback resets on page refresh; can't learn across sessions |
+| `is_music_request` in extraction schema | Single API call doubles as guardrail; no extra latency | Only works when OpenAI key is present; keyword blocklist is the fallback |
+| Random mode via genre sampling | Spotify has no "random" endpoint; sampling from a genre pool + shuffling gives genuine variety | Results still reflect genre popularity biases in Spotify's index |
 
-### 6. Limitations and Bias
+---
 
-The recommender ignores lyrics, artist context, listening history, instrumentation, and many other signals people use when choosing music. It can also over-prioritize energy because that feature has the highest weight, which may favor some songs even when genre or mood are not as close.
+## Testing Summary
 
-### 7. Evaluation
+**14 tests across two modules** (`tests/test_recommender.py`, `tests/test_spotify_client.py`).
 
-I tested the CLI with several user profiles, including Happy Pop Fan, Intense Rock Fan, Chill Lofi Fan, and Peaceful Classical Fan. I checked whether the top results matched the expected genre and mood, and I used the explanation text to confirm that the ranking logic behaved as intended.
+### What is tested
 
-The results were mostly what I expected, but one thing that stood out was how often the energy weight pulled in cross-genre songs. For example, the Happy Pop and Intense Rock profiles both surfaced Gym Hero because it is high energy, while the Chill Lofi and Peaceful Classical profiles shifted toward calmer songs that matched the lower-energy mood of each profile. That made sense because the model is designed to reward energy strongly, but it also showed that the system is not just looking at genre alone.
+| Area | Tests |
+|---|---|
+| Recommendation scoring and sort order | `test_recommend_returns_songs_sorted_by_score` |
+| Explanation generation | `test_explain_recommendation_returns_non_empty_string` |
+| Keyword preference extraction | 3 tests covering happy/pop, chill/lofi/studying, and high-energy workout |
+| Default fallback values | `test_extract_preferences_falls_back_to_defaults` |
+| OpenAI extraction with mock client | `test_extract_preferences_uses_openai_structured_payload` |
+| OpenAI unavailable → keyword fallback | `test_extract_preferences_openai_unavailable_falls_back_without_crashing` |
+| End-to-end text-to-recommendations | `test_recommend_songs_from_text_returns_explanations` |
+| Spotify auth, search, normalization | 4 tests in `test_spotify_client.py` |
 
-No need for numeric metrics unless you created some.
+### What worked
 
-### 8. Future Work
+- The mock-based OpenAI test proved the Chat Completions integration was correct before any live API calls.
+- Keyword fallback tests gave confidence that the app degrades gracefully when no API key is present.
+- Running `pytest -v` after every change caught regressions immediately — for example, when the scoring weights were adjusted, the sort-order test confirmed the top song still scored highest.
 
-If I had more time, I would add more song features, improve diversity among the top results, tune the weights more carefully, and support richer user profiles or group recommendations.
+### What didn't work initially
+
+- The original code used the **Responses API** (`client.responses.create`) for OpenAI calls. The schema shape was wrong for that API, so extraction silently failed and fell back to keywords every time. Switching to **Chat Completions** (`client.chat.completions.create`) with `response_format` fixed it.
+- Spotify was returning the same song from multiple albums (e.g., "Could You Be Loved" on both its original album and a greatest-hits compilation). Deduplication on `(title.lower(), artist.lower())` resolved the duplicate results.
+
+### What I learned
+
+Testing the AI components with mocks (injecting a fake OpenAI client that returns controlled JSON) is essential. It makes the extraction logic independently verifiable without API costs or network flakiness, and it forces you to define exactly what the AI contract should return.
+
+---
+
+## Reflection
+
+### What this project taught me about AI
+
+Building MoodMatch made abstract AI concepts concrete. Retrieval-Augmented Generation stopped being a buzzword and became an obvious solution to a real problem: the model doesn't know what's on Spotify today, so you have to retrieve that data first. Structured output (forcing the model to return valid JSON with a defined schema) was the difference between a reliable pipeline and one that broke silently.
+
+The guardrail feature was a lesson in how easily language models can be pulled off-task. A user typing "give me something random" causes the system to search Spotify for songs literally titled "Random" or "Ransom" — not because the model misunderstood, but because no one told it that search terms should be music signals, not filler words. Careful prompt design and schema constraints fixed that.
+
+### What this project taught me about problem-solving
+
+The feedback loop (like/dislike/refresh) was the most architecturally interesting feature. The first instinct was to store liked songs in a database. The second instinct was to add new fields to the scoring model. The right answer was much simpler: adjust the `target_energy` and `favorite_genre` values already used by the existing scorer, and filter the disliked songs from the pool. No new database, no new model — just better use of what was already there.
+
+That pattern — solve the problem with what you already have before adding new machinery — is one I'll carry forward.
+
+---
+
+## Project Structure
+
+```
+.
+├── src/
+│   ├── app.py              # Streamlit UI, feedback loop, guardrail wiring
+│   ├── recommender.py      # Scoring, explanation, preference extraction
+│   ├── spotify_client.py   # Spotify auth, search, data normalization
+│   └── main.py             # CLI runner
+├── tests/
+│   ├── test_recommender.py # 9 recommender tests
+│   └── test_spotify_client.py  # 5 Spotify client tests
+├── data/
+│   └── songs.csv           # Local 20-song fallback catalog
+└── requirements.txt
+```
+
+---
+
+## Tech Stack
+
+- **Python 3.10+**
+- **Streamlit** — UI framework
+- **OpenAI Python SDK** — preference extraction via `gpt-4.1-mini`
+- **Spotify Web API** — live track search (Client Credentials flow)
+- **pytest** — test suite
+- **requests** — Spotify HTTP calls

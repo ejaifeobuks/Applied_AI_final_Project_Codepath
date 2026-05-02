@@ -32,8 +32,8 @@ class SpotifyClient:
         client_id: Optional[str] = None,
         client_secret: Optional[str] = None,
     ) -> None:
-        self.client_id = client_id or os.getenv("SPOTIFY_CLIENT_ID", "")
-        self.client_secret = client_secret or os.getenv("SPOTIFY_CLIENT_SECRET", "")
+        self.client_id = (client_id or os.getenv("SPOTIFY_CLIENT_ID", "")).strip()
+        self.client_secret = (client_secret or os.getenv("SPOTIFY_CLIENT_SECRET", "")).strip()
 
     def has_credentials(self) -> bool:
         return bool(self.client_id and self.client_secret)
@@ -57,16 +57,25 @@ class SpotifyClient:
 
     def search_tracks(self, query: str, limit: int = 10) -> List[SpotifyTrack]:
         token = self.get_access_token()
-        response = requests.get(
-            SEARCH_URL,
-            headers={"Authorization": f"Bearer {token}"},
-            params={"q": query, "type": "track", "limit": min(limit, 10)},
-            timeout=10,
-        )
-        response.raise_for_status()
-        payload = response.json()
-        items = payload.get("tracks", {}).get("items", [])
-        return [self._normalize_track(item) for item in items]
+
+        def _fetch(q: str) -> List[SpotifyTrack]:
+            response = requests.get(
+                SEARCH_URL,
+                headers={"Authorization": f"Bearer {token}"},
+                params={"q": q, "type": "track", "limit": min(limit, 10)},
+                timeout=10,
+            )
+            response.raise_for_status()
+            items = response.json().get("tracks", {}).get("items", [])
+            return [self._normalize_track(item) for item in items]
+
+        try:
+            return _fetch(query)
+        except requests.HTTPError as exc:
+            first_term = query.split()[0] if query else ""
+            if exc.response.status_code == 400 and first_term and first_term != query:
+                return _fetch(first_term)
+            raise
 
     @staticmethod
     def _normalize_track(item: dict) -> SpotifyTrack:
@@ -85,18 +94,27 @@ class SpotifyClient:
 def build_search_query(preferences: "ExtractedPreferences") -> str:
     """Build a Spotify search query from extracted user preferences.
 
-    Only uses genuine music signals (genre, mood, activity context) so that
-    filler words like 'random' or 'surprise' are never sent to Spotify.
+    Enriches the query using the genre knowledge base when available —
+    replacing a bare genre name with curated Spotify search terms drawn from
+    genre_profiles.json. Falls back to the raw genre/mood/activity signals
+    when the genre is not in the KB.
+
     Returns an empty string when no signals are present, signalling the caller
     to skip the Spotify path and fall back to the local catalog.
     """
-    terms: list[str] = []
-    if preferences.genre:
-        terms.append(preferences.genre)
-    if preferences.mood:
-        terms.append(preferences.mood)
-    if preferences.activity_context and preferences.activity_context not in terms:
-        terms.append(preferences.activity_context)
+    try:
+        from knowledge_base import enrich_search_terms
+    except ImportError:
+        from src.knowledge_base import enrich_search_terms
+
+    if not preferences.genre and not preferences.mood and not preferences.activity_context:
+        return ""
+
+    terms = enrich_search_terms(
+        preferences.genre,
+        preferences.mood,
+        preferences.activity_context,
+    )
     return " ".join(terms)
 
 

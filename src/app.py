@@ -6,7 +6,7 @@ import streamlit as st
 _RANDOM_GENRES = [
     "pop", "rock", "hip-hop", "jazz", "electronic", "indie", "r&b",
     "soul", "funk", "reggae", "country", "classical", "lofi", "ambient",
-    "folk", "blues", "metal", "latin", "dance", "alternative",
+    "folk", "blues", "metal", "latin", "dance", "alternative", "afrobeats",
 ]
 
 _RANDOM_INTENT_PHRASES = [
@@ -33,6 +33,7 @@ try:
         build_search_query,
         spotify_track_to_song_dict,
     )
+    from .knowledge_base import get_genre_profile
 except ImportError:
     from recommender import (
         extract_preferences_from_text,
@@ -41,6 +42,7 @@ except ImportError:
         recommend_songs_from_text,
     )
     from spotify_client import SpotifyClient, build_search_query, spotify_track_to_song_dict
+    from knowledge_base import get_genre_profile
 
 
 def get_recommendations(prompt: str, songs: list[dict], model: str = "gpt-4.1-mini") -> tuple[list[tuple[dict, float, str]], dict]:
@@ -56,6 +58,15 @@ def get_recommendations(prompt: str, songs: list[dict], model: str = "gpt-4.1-mi
             "error": "not_music_request",
         }
 
+    kb_profile = get_genre_profile(extracted.genre)
+    if kb_profile:
+        _desc = kb_profile.get("description", "")
+        kb_genre_description = _desc.split(".")[0] + "." if _desc else ""
+    else:
+        kb_genre_description = ""
+
+    kb_raw_query = " ".join(p for p in [extracted.genre, extracted.mood, extracted.activity_context] if p)
+
     metadata = {
         "genre": extracted.genre or "none",
         "mood": extracted.mood or "none",
@@ -69,6 +80,9 @@ def get_recommendations(prompt: str, songs: list[dict], model: str = "gpt-4.1-mi
         "source": "local",
         "spotify_query": "",
         "random_mode": False,
+        "kb_enriched": kb_profile is not None,
+        "kb_genre_description": kb_genre_description,
+        "kb_raw_query": kb_raw_query,
         "error": "",
     }
 
@@ -94,22 +108,25 @@ def get_recommendations(prompt: str, songs: list[dict], model: str = "gpt-4.1-mi
                     seen.add(key)
                     unique_tracks.append(track)
 
+            # Convert all fetched tracks to song dicts — the full set becomes
+            # the pool so skipping displayed songs doesn't exhaust it.
+            all_song_dicts = [
+                spotify_track_to_song_dict(track, extracted, fallback_id=index)
+                for index, track in enumerate(unique_tracks, start=1)
+            ]
+            metadata["full_pool"] = all_song_dicts
+
             if metadata.get("random_mode"):
-                # Shuffle for genuine randomness; score = normalised popularity
-                random.shuffle(unique_tracks)
+                random.shuffle(all_song_dicts)
                 recommendations = [
                     (
-                        spotify_track_to_song_dict(track, extracted, fallback_id=i),
-                        round(track.popularity / 100, 2),
+                        song,
+                        round(song["popularity"] / 100, 2),
                         "A random Spotify pick — something new to discover!",
                     )
-                    for i, track in enumerate(unique_tracks[:5], start=1)
+                    for song in all_song_dicts[:5]
                 ]
             else:
-                spotify_song_dicts = [
-                    spotify_track_to_song_dict(track, extracted, fallback_id=index)
-                    for index, track in enumerate(unique_tracks, start=1)
-                ]
                 recommendations = recommend_songs(
                     {
                         "genre": extracted.genre,
@@ -117,11 +134,17 @@ def get_recommendations(prompt: str, songs: list[dict], model: str = "gpt-4.1-mi
                         "energy": extracted.energy,
                         "likes_acoustic": extracted.likes_acoustic,
                     },
-                    spotify_song_dicts,
+                    all_song_dicts,
                     k=5,
                 )
 
             metadata["source"] = "spotify"
+            # Append KB genre context to each explanation (non-random mode only)
+            if not metadata["random_mode"] and kb_genre_description:
+                recommendations = [
+                    (song, score, f"{expl} ({kb_genre_description})")
+                    for song, score, expl in recommendations
+                ]
             return recommendations, metadata
         except Exception as exc:
             metadata["error"] = str(exc)
@@ -160,11 +183,15 @@ def _do_refresh() -> None:
 
     liked = [s for s, _, _ in st.session_state.current_recs
              if fb.get(_song_key(s)) == "like"]
-    disliked_keys = {k for k, v in fb.items() if v == "dislike"}
+    excluded_keys = {k for k, v in fb.items() if v in ("dislike", "skip")}
 
-    filtered_pool = [s for s in pool if _song_key(s) not in disliked_keys]
+    filtered_pool = [s for s in pool if _song_key(s) not in excluded_keys]
     if not filtered_pool:
         return
+
+    # Shrink the pool permanently so songs excluded in this cycle
+    # don't reappear in future refreshes after feedback is reset.
+    st.session_state.songs_pool = filtered_pool
 
     adjusted_prefs = _nudge_prefs(st.session_state.base_prefs, liked)
     new_recs = recommend_songs(adjusted_prefs, filtered_pool, k=5)
@@ -234,7 +261,7 @@ if submitted:
             st.session_state.feedback = {}
 
             if metadata["source"] == "spotify":
-                st.session_state.songs_pool = [s for s, _, _ in recommendations]
+                st.session_state.songs_pool = metadata["full_pool"]
                 st.session_state.pool_source = "spotify"
             else:
                 st.session_state.songs_pool = songs
@@ -266,8 +293,14 @@ if submitted:
                 st.write(f"Preference extraction: {metadata['extraction_source']}")
                 if metadata["extraction_source"] == "openai":
                     st.write(f"Model: {selected_model}")
-                if metadata["spotify_query"]:
-                    st.write(f"Spotify query: {metadata['spotify_query']}")
+                if metadata["spotify_query"] and not metadata.get("random_mode"):
+                    if metadata.get("kb_enriched"):
+                        st.write(f"Query (without KB): `{metadata['kb_raw_query']}`")
+                        st.write(f"Query (with KB): `{metadata['spotify_query']}`")
+                    else:
+                        st.write(f"Spotify query: {metadata['spotify_query']}")
+                if metadata.get("kb_enriched") and metadata.get("kb_genre_description"):
+                    st.caption(f"KB: {metadata['kb_genre_description']}")
 
             if metadata["error"]:
                 st.info(f"Spotify search failed, so local catalog fallback was used: {metadata['error']}")

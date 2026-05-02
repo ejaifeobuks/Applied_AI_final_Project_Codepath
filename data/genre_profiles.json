@@ -1,0 +1,242 @@
+{
+  "afrobeats": {
+    "description": "A genre originating in West Africa — particularly Nigeria and Ghana — blending West African rhythms with Western pop, hip-hop, and R&B. Characterized by infectious polyrhythmic percussion, melodic hooks, and artists like Burna Boy, Wizkid, and Davido.",
+    "typical_energy_range": [0.6, 0.9],
+    "typical_tempo_bpm": [90, 115],
+    "common_moods": ["groovy", "happy", "energetic", "romantic"],
+    "activity_contexts": ["dancing", "parties", "casual listening", "driving"],
+    "related_genres": ["afropop", "dancehall", "reggae", "latin"],
+    "spotify_search_terms": ["afrobeats", "afropop", "afrobeats hits"],
+    "sub_genres": ["afropop", "afro fusion", "afro dancehall", "alte"]
+  },
+  "pop": {
+    "description": "Popular music characterized by catchy melodies, verse-chorus structure, and broad mainstream appeal. Typically features polished production, accessible lyrics, and danceable rhythms.",
+    "typical_energy_range": [0.5, 0.9],
+    "typical_tempo_bpm": [100, 130],
+    "common_moods": ["happy", "romantic", "energetic", "upbeat"],
+    "activity_contexts": ["parties", "driving", "casual listening", "dancing"],
+    "related_genres": ["dance pop", "indie pop", "electropop", "synth-pop"],
+    "spotify_search_terms": ["pop hits", "pop music", "top pop"],
+    "sub_genres": ["dance pop", "electropop", "synth-pop", "bedroom pop", "bubblegum pop"]
+  },
+  "rock": {
+    "description": "Guitar-driven music built around electric guitars, bass, and drums. Ranges from classic rock to hard rock, with emphasis on rhythm, power chords, and vocal energy.",
+    "typical_energy_range": [0.6, 0.95],
+    "typical_tempo_bpm": [100, 160],
+    "common_moods": ["intense", "driving", "empowering", "rebellious"],
+    "activity_contexts": ["workout", "driving", "concerts", "running"],
+    "related_genres": ["alternative", "metal", "indie rock", "punk"],
+    "spotify_search_terms": ["rock music", "classic rock", "hard rock"],
+    "sub_genres": ["classic rock", "hard rock", "punk rock", "alternative rock", "indie rock", "garage rock"]
+  },
+  "hip-hop": {
+    "description": "A genre built around rhythmic vocal delivery over sampled or produced beats. Originated in 1970s New York and has grown into one of the world's most dominant genres across trap, conscious rap, and drill.",
+    "typical_energy_range": [0.5, 0.9],
+    "typical_tempo_bpm": [70, 100],
+    "common_moods": ["confident", "intense", "groovy", "moody"],
+    "activity_contexts": ["workout", "driving", "parties", "casual listening"],
+    "related_genres": ["r&b", "trap", "lofi", "soul"],
+    "spotify_search_terms": ["hip hop", "rap music", "trap beats"],
+    "sub_genres": ["trap", "old school hip hop", "conscious rap", "drill", "boom bap", "mumble rap"]
+  },
+  "jazz": {
+    "description": "An improvisational genre rooted in African American musical traditions, characterized by complex harmonies, syncopated rhythms, and expressive instrumentation. Ranges from upbeat swing to contemplative cool jazz and late-night bossa nova.",
+    "typical_energy_range": [0.2, 0.7],
+    "typical_tempo_bpm": [60, 180],
+    "common_moods": ["relaxed", "sophisticated", "romantic", "melancholic", "groovy"],
+    "activity_contexts": ["studying", "dinner", "late-night listening", "working", "relaxing"],
+    "related_genres": ["blues", "soul", "bossa nova", "fusion"],
+    "spotify_search_terms": ["jazz music", "smooth jazz", "jazz cafe lounge"],
+    "sub_genres": ["bebop", "smooth jazz", "cool jazz", "fusion jazz", "bossa nova", "swing", "modal jazz"]
+  },
+  "electronic": {
+    "description": "Music produced primarily with electronic instruments and digital audio workstations. Encompasses a wide range of styles from ambient textures to high-energy club music, united by synthesized sound design.",
+    "typical_energy_range": [0.5, 0.95],
+    "typical_tempo_bpm": [120, 145],
+    "common_moods": ["energetic", "focused", "hypnotic", "euphoric"],
+    "activity_contexts": ["workout", "clubs", "gaming", "creative work", "driving"],
+    "related_genres": ["dance", "ambient", "synthwave", "techno", "house"],
+    "spotify_search_terms": ["electronic music", "EDM", "synth electronic"],
+    "sub_genres": ["techno", "house", "trance", "dubstep", "downtempo", "IDM", "drum and bass"]
+  },
+  "indie": {
+    "description": "Independent music characterized by DIY production aesthetics and artistic freedom outside the mainstream. Indie spans many styles but prioritizes authentic expression, introspective lyrics, and unconventional song structures.",
+    "typical_energy_range": [0.35, 0.75],
+    "typical_tempo_bpm": [90, 130],
+    "common_moods": ["introspective", "melancholic", "nostalgic", "hopeful"],
+    "activity_contexts": ["casual listening", "driving", "studying", "late-night"],
+    "related_genres": ["alternative", "folk", "indie pop", "indie rock", "dream pop"],
+    "spotify_search_terms": ["indie music", "indie rock", "indie pop alternative"],
+    "sub_genres": ["indie rock", "indie pop", "indie folk", "dream pop", "shoegaze", "bedroom pop"]
+  },
+  "r&b": {
+    "description": "Rhythm and Blues combines soulful vocals with groovy rhythms and smooth production. Modern R&B blends hip-hop, pop, and soul into melodic tracks centered on love, relationships, and emotional expression.",
+    "typical_energy_range": [0.4, 0.8],
+    "typical_tempo_bpm": [70, 110],
+    "common_moods": ["romantic", "groovy", "sensual", "emotional"],
+    "activity_contexts": ["driving", "relaxing", "parties", "date night"],
+    "related_genres": ["soul", "hip-hop", "funk", "pop"],
+    "spotify_search_terms": ["r&b music", "rnb soul", "contemporary r&b"],
+    "sub_genres": ["contemporary R&B", "neo soul", "new jack swing", "quiet storm"]
+  },
+  "soul": {
+    "description": "An emotionally expressive genre rooted in gospel and R&B, soul music emphasizes powerful vocals, heartfelt lyrics, and rich orchestral arrangements. Artists like Aretha Franklin and Marvin Gaye defined its emotional depth.",
+    "typical_energy_range": [0.4, 0.8],
+    "typical_tempo_bpm": [65, 110],
+    "common_moods": ["emotional", "romantic", "uplifting", "melancholic"],
+    "activity_contexts": ["relaxing", "dinner", "driving", "casual listening"],
+    "related_genres": ["r&b", "funk", "gospel", "blues"],
+    "spotify_search_terms": ["soul music", "classic soul", "neo soul vocal"],
+    "sub_genres": ["classic soul", "neo soul", "deep soul", "southern soul", "psychedelic soul"]
+  },
+  "funk": {
+    "description": "A highly rhythmic genre built around syncopated bass lines, percussive guitar riffs, and tight horn sections. Funk prioritizes the groove above everything else — if it makes you move, it's working.",
+    "typical_energy_range": [0.6, 0.9],
+    "typical_tempo_bpm": [90, 120],
+    "common_moods": ["groovy", "energetic", "joyful", "danceable"],
+    "activity_contexts": ["parties", "dancing", "casual listening", "workout"],
+    "related_genres": ["soul", "r&b", "disco", "jazz"],
+    "spotify_search_terms": ["funk music", "groovy funk bass", "classic funk"],
+    "sub_genres": ["classic funk", "P-funk", "neo-funk", "electro-funk", "funk rock"]
+  },
+  "reggae": {
+    "description": "Originating in Jamaica in the late 1960s, reggae is defined by its syncopated rhythm guitar skank, heavy bass lines, and socially conscious or spiritual lyrics. Bob Marley remains its most internationally recognized ambassador.",
+    "typical_energy_range": [0.3, 0.65],
+    "typical_tempo_bpm": [60, 90],
+    "common_moods": ["peaceful", "relaxed", "uplifting", "positive"],
+    "activity_contexts": ["relaxing", "outdoor activities", "casual listening", "beach"],
+    "related_genres": ["ska", "dub", "dancehall", "rocksteady"],
+    "spotify_search_terms": ["reggae music", "roots reggae", "reggae vibes"],
+    "sub_genres": ["roots reggae", "dub", "dancehall", "rocksteady", "lovers rock"]
+  },
+  "country": {
+    "description": "American roots music blending folk, blues, and Western traditions with storytelling lyrics and acoustic instrumentation including guitar, fiddle, and pedal steel. Themes range from rural life and heartbreak to resilience and celebration.",
+    "typical_energy_range": [0.4, 0.85],
+    "typical_tempo_bpm": [80, 135],
+    "common_moods": ["nostalgic", "emotional", "upbeat", "reflective"],
+    "activity_contexts": ["driving", "casual listening", "outdoor activities", "road trips"],
+    "related_genres": ["folk", "bluegrass", "Americana", "southern rock"],
+    "spotify_search_terms": ["country music", "modern country hits", "country acoustic"],
+    "sub_genres": ["classic country", "modern country", "bluegrass", "Americana", "outlaw country", "country pop"]
+  },
+  "classical": {
+    "description": "Western art music spanning orchestral, chamber, and solo instrumental traditions. Known for complexity, formal structure, and profound emotional range — from the delicate counterpoint of Bach to the sweeping romanticism of Tchaikovsky.",
+    "typical_energy_range": [0.1, 0.65],
+    "typical_tempo_bpm": [40, 180],
+    "common_moods": ["peaceful", "intense", "romantic", "melancholic", "triumphant", "focused"],
+    "activity_contexts": ["studying", "sleeping", "relaxing", "deep concentration", "meditation"],
+    "related_genres": ["ambient", "orchestral", "contemporary classical", "chamber music"],
+    "spotify_search_terms": ["classical music", "piano classical focus", "orchestral pieces"],
+    "sub_genres": ["baroque", "romantic classical", "contemporary classical", "chamber music", "solo piano", "opera"]
+  },
+  "lofi": {
+    "description": "Lo-fi hip hop features intentionally low-fidelity audio — vinyl crackle, dusty samples, muffled beats — layered over slow mellow hip-hop rhythms. It became the defining study and focus genre of the 2010s streaming era.",
+    "typical_energy_range": [0.2, 0.5],
+    "typical_tempo_bpm": [60, 90],
+    "common_moods": ["chill", "focused", "nostalgic", "relaxed"],
+    "activity_contexts": ["studying", "working", "reading", "late-night coding"],
+    "related_genres": ["chillhop", "jazz hop", "ambient hip hop", "ambient"],
+    "spotify_search_terms": ["lofi hip hop", "chillhop beats", "study lofi chill"],
+    "sub_genres": ["chillhop", "jazz hop", "lo-fi beats", "lo-fi soul"]
+  },
+  "ambient": {
+    "description": "Atmospheric music designed to evoke environment and mood rather than demand attention. Pioneered by Brian Eno, ambient music uses texture, tone, and slow evolution to create immersive soundscapes that blur the line between music and atmosphere.",
+    "typical_energy_range": [0.05, 0.35],
+    "typical_tempo_bpm": [40, 80],
+    "common_moods": ["peaceful", "meditative", "dreamlike", "serene"],
+    "activity_contexts": ["sleep", "meditation", "deep focus", "background listening", "yoga"],
+    "related_genres": ["drone", "new age", "electronic", "post-rock", "lofi"],
+    "spotify_search_terms": ["ambient music", "atmospheric ambient sounds", "space ambient drone"],
+    "sub_genres": ["dark ambient", "drone", "new age", "space music", "ambient electronic"]
+  },
+  "folk": {
+    "description": "Acoustic music rooted in oral traditions and regional storytelling, blending fingerpicked guitar, honest lyrics, and natural recording aesthetics. Contemporary folk artists like Fleet Foxes and Iron & Wine have brought the genre to new audiences.",
+    "typical_energy_range": [0.2, 0.6],
+    "typical_tempo_bpm": [70, 120],
+    "common_moods": ["reflective", "melancholic", "peaceful", "nostalgic"],
+    "activity_contexts": ["casual listening", "studying", "outdoor activities", "relaxing"],
+    "related_genres": ["country", "indie folk", "acoustic", "singer-songwriter", "Americana"],
+    "spotify_search_terms": ["folk music", "acoustic folk singer songwriter", "indie folk"],
+    "sub_genres": ["indie folk", "traditional folk", "folk rock", "Americana", "anti-folk"]
+  },
+  "blues": {
+    "description": "Expressive guitar-based music originating in African American culture of the Deep South. Blues is characterized by the blues scale, call-and-response phrasing, bending notes, and themes of perseverance through hardship.",
+    "typical_energy_range": [0.3, 0.75],
+    "typical_tempo_bpm": [60, 120],
+    "common_moods": ["melancholic", "soulful", "emotional", "introspective"],
+    "activity_contexts": ["relaxing", "late-night listening", "casual listening"],
+    "related_genres": ["jazz", "soul", "rock", "country"],
+    "spotify_search_terms": ["blues music", "electric blues guitar", "blues soul"],
+    "sub_genres": ["delta blues", "electric blues", "Chicago blues", "blues rock", "Texas blues"]
+  },
+  "metal": {
+    "description": "A high-intensity genre built around heavily distorted guitars, aggressive or operatic vocals, and thunderous percussion. Metal emphasizes technical skill, power, and emotional extremity — from melodic power metal to abrasive death metal.",
+    "typical_energy_range": [0.7, 1.0],
+    "typical_tempo_bpm": [120, 220],
+    "common_moods": ["intense", "aggressive", "powerful", "cathartic"],
+    "activity_contexts": ["workout", "high-intensity tasks", "driving", "running"],
+    "related_genres": ["rock", "punk", "hardcore", "progressive rock"],
+    "spotify_search_terms": ["heavy metal", "metal music", "hard rock metal"],
+    "sub_genres": ["heavy metal", "thrash metal", "death metal", "doom metal", "metalcore", "power metal", "black metal"]
+  },
+  "latin": {
+    "description": "A broad category of music from Latin America and Spain including salsa, reggaeton, bossa nova, and cumbia. Latin music is characterized by rhythmic complexity, rich percussion, passionate vocals, and joyful energy.",
+    "typical_energy_range": [0.5, 0.9],
+    "typical_tempo_bpm": [80, 135],
+    "common_moods": ["passionate", "romantic", "groovy", "energetic"],
+    "activity_contexts": ["dancing", "parties", "driving", "casual listening"],
+    "related_genres": ["reggae", "pop", "r&b", "flamenco"],
+    "spotify_search_terms": ["latin music", "reggaeton latin pop", "salsa tropical"],
+    "sub_genres": ["salsa", "reggaeton", "bossa nova", "cumbia", "merengue", "bachata", "latin pop"]
+  },
+  "dance": {
+    "description": "Electronic dance music engineered for clubs and dancefloors. Dance music is defined by a strong four-on-the-floor beat, driving basslines, and euphoric builds toward a drop designed to move a crowd.",
+    "typical_energy_range": [0.75, 1.0],
+    "typical_tempo_bpm": [120, 145],
+    "common_moods": ["euphoric", "energetic", "groovy", "intense"],
+    "activity_contexts": ["dancing", "parties", "workout", "clubs"],
+    "related_genres": ["electronic", "pop", "house", "techno"],
+    "spotify_search_terms": ["dance music", "EDM dance club", "dance pop hits"],
+    "sub_genres": ["house", "techno", "trance", "drum and bass", "garage", "breakbeat"]
+  },
+  "alternative": {
+    "description": "A broad category of guitar-based rock music outside the mainstream, characterized by experimental sounds, unconventional structures, and introspective or provocative lyrics. Alternative emerged from post-punk and new wave in the 1980s.",
+    "typical_energy_range": [0.5, 0.85],
+    "typical_tempo_bpm": [90, 140],
+    "common_moods": ["moody", "introspective", "intense", "melancholic"],
+    "activity_contexts": ["driving", "casual listening", "studying", "late-night"],
+    "related_genres": ["indie", "rock", "grunge", "post-punk"],
+    "spotify_search_terms": ["alternative rock", "alternative music", "indie alternative"],
+    "sub_genres": ["grunge", "post-punk", "shoegaze", "dream pop", "emo", "post-rock"]
+  },
+  "synthwave": {
+    "description": "A genre inspired by 1980s electronic film soundtracks and retro-futurism. Synthwave features lush synthesizer pads, arpeggiated basslines, and a cinematic nostalgic aesthetic evoking neon-lit nights and open highways.",
+    "typical_energy_range": [0.5, 0.85],
+    "typical_tempo_bpm": [90, 120],
+    "common_moods": ["nostalgic", "driving", "moody", "cinematic"],
+    "activity_contexts": ["driving", "gaming", "late-night work", "night runs"],
+    "related_genres": ["electronic", "new wave", "vaporwave", "darksynth"],
+    "spotify_search_terms": ["synthwave retrowave", "80s synth neon", "outrun synthwave"],
+    "sub_genres": ["darksynth", "outrun", "retrowave", "vaporwave", "chillwave"]
+  },
+  "acoustic": {
+    "description": "Music performed primarily on acoustic, non-amplified instruments. Acoustic music emphasizes natural timbre, intimacy, and stripped-down arrangements where the raw sound of the instrument is the focal point.",
+    "typical_energy_range": [0.15, 0.55],
+    "typical_tempo_bpm": [60, 120],
+    "common_moods": ["peaceful", "reflective", "romantic", "intimate"],
+    "activity_contexts": ["relaxing", "studying", "casual listening", "morning"],
+    "related_genres": ["folk", "singer-songwriter", "indie folk", "country"],
+    "spotify_search_terms": ["acoustic music", "acoustic guitar songs", "unplugged acoustic"],
+    "sub_genres": ["acoustic folk", "acoustic pop", "acoustic rock", "fingerstyle guitar"]
+  },
+  "indie pop": {
+    "description": "A melodic offshoot of indie rock that prioritizes catchy hooks and bright production over guitar distortion. Indie pop blends the artistic independence of indie with accessible, often jangly or synth-driven arrangements.",
+    "typical_energy_range": [0.4, 0.75],
+    "typical_tempo_bpm": [95, 130],
+    "common_moods": ["happy", "nostalgic", "romantic", "hopeful"],
+    "activity_contexts": ["casual listening", "driving", "studying", "morning routines"],
+    "related_genres": ["indie", "pop", "dream pop", "synth-pop"],
+    "spotify_search_terms": ["indie pop music", "indie pop hits", "jangly indie pop"],
+    "sub_genres": ["chamber pop", "dream pop", "twee pop", "electropop indie"]
+  }
+}

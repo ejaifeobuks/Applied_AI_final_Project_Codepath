@@ -14,6 +14,8 @@ The project shows how the core techniques behind commercial music platforms (pre
 
 ## Architecture Overview
 
+![MoodMatch System Diagram](assets/Moodmatch_diagram.png)
+
 ```
 User Prompt (natural language)
         │
@@ -32,6 +34,13 @@ User Prompt (natural language)
 └────────┬────────────┘
          │ valid request
          ▼
+┌─────────────────────┐
+│  Knowledge Base     │  data/genre_profiles.json — 23 hand-authored
+│  (RAG document)     │  genre profiles with curated Spotify search
+│                     │  terms, mood lists, and energy ranges.
+└──────┬──────────────┘
+       │ enriched query + genre description
+       ▼
 ┌─────────────────────┐        ┌──────────────────────┐
 │  Spotify Search     │        │  Local CSV Catalog   │
 │  (RAG retrieval)    │──────▶ │  Fallback (20 songs) │
@@ -44,7 +53,8 @@ User Prompt (natural language)
 ┌─────────────────────┐
 │  Recommender        │  Weighted scoring:
 │  Scorer             │  genre 20% · mood 20% · energy 35%
-│                     │  acousticness 10% · popularity 15%
+│  + Explanation      │  acousticness 10% · popularity 15%
+│    Engine           │  Appends KB genre description to each explanation.
 └────────┬────────────┘
          │ ranked (song, score, explanation)
          ▼
@@ -55,7 +65,7 @@ User Prompt (natural language)
 └─────────────────────┘
 ```
 
-The Spotify integration is the **RAG** component: the system retrieves real tracks from an external source before generating its ranked, explained response — rather than answering from a fixed internal catalog alone.
+The system uses **two RAG sources**: the Spotify Web API retrieves live tracks from an external catalog, and `data/genre_profiles.json` is a custom knowledge-base document that enriches the search query with curated Spotify search terms before any request is made. Together they ground the recommendations in real, current music rather than a fixed internal list.
 
 ---
 
@@ -111,7 +121,7 @@ python -m src.main
 pytest -v
 ```
 
-Expected output: **14 tests pass**.
+Expected output: **15 tests pass**.
 
 ---
 
@@ -137,7 +147,7 @@ Expected output: **14 tests pass**.
 **Input:**
 > "Surprise me with something"
 
-**Behaviour:** No music signals detected → random mode activates. Two genres are picked randomly from a 20-genre pool, Spotify is searched, results are shuffled.
+**Behaviour:** No music signals detected → random mode activates. Two genres are picked randomly from a 21-genre pool, Spotify is searched, results are shuffled.
 
 **Sample result:**
 > **Blinding Lights** by The Weeknd
@@ -190,7 +200,7 @@ Each run returns a different shuffle of genres and tracks.
 
 ## Testing Summary
 
-**14 tests across two modules** (`tests/test_recommender.py`, `tests/test_spotify_client.py`).
+**15 tests across two modules** (`tests/test_recommender.py`, `tests/test_spotify_client.py`).
 
 ### What is tested
 
@@ -204,6 +214,7 @@ Each run returns a different shuffle of genres and tracks.
 | OpenAI unavailable → keyword fallback | `test_extract_preferences_openai_unavailable_falls_back_without_crashing` |
 | End-to-end text-to-recommendations | `test_recommend_songs_from_text_returns_explanations` |
 | Spotify auth, search, normalization | 4 tests in `test_spotify_client.py` |
+| KB query enrichment (pop + lofi) | 2 tests verifying KB expands bare genre names into richer Spotify queries |
 
 ### What worked
 
@@ -245,13 +256,15 @@ That pattern — solve the problem with what you already have before adding new 
 ├── src/
 │   ├── app.py              # Streamlit UI, feedback loop, guardrail wiring
 │   ├── recommender.py      # Scoring, explanation, preference extraction
-│   ├── spotify_client.py   # Spotify auth, search, data normalization
+│   ├── spotify_client.py   # Spotify auth, search, query building
+│   ├── knowledge_base.py   # Genre KB loader and query enrichment
 │   └── main.py             # CLI runner
 ├── tests/
-│   ├── test_recommender.py # 9 recommender tests
-│   └── test_spotify_client.py  # 5 Spotify client tests
+│   ├── test_recommender.py     # 9 recommender tests
+│   └── test_spotify_client.py  # 6 Spotify + KB tests
 ├── data/
-│   └── songs.csv           # Local 20-song fallback catalog
+│   ├── songs.csv               # Local 20-song fallback catalog
+│   └── genre_profiles.json     # 23 hand-authored genre profiles (KB)
 └── requirements.txt
 ```
 

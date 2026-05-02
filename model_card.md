@@ -39,9 +39,13 @@ The model also sets a guardrail flag that detects if the input is not a music re
 
 If no OpenAI key is available, the system falls back to keyword matching: it scans the prompt for known genre and mood words and infers energy from activity-related terms like "workout" or "sleep."
 
-### Stage 2 — Finding and Ranking Songs
+### Stage 2 — Knowledge Base Enrichment
 
-Once preferences are extracted, the system searches Spotify for up to ten tracks matching those signals. This is the RAG (Retrieval-Augmented Generation) step — the system retrieves real, current music from an external source rather than relying on a fixed internal list.
+Before any Spotify request is made, the extracted genre is looked up in a hand-authored knowledge base (`data/genre_profiles.json`) containing 23 genre profiles. Each profile holds curated Spotify search terms, typical mood and energy ranges, related genres, and a short description. The system replaces the bare genre name in the search query with the KB's curated terms — for example, "lofi" becomes "lofi hip hop study beats" — producing a far more targeted Spotify query than the raw user words would. The KB description is also appended to each recommendation's explanation so the user understands the genre context.
+
+### Stage 3 — Finding and Ranking Songs
+
+With the enriched query in hand, the system searches Spotify for up to ten tracks. This is the RAG (Retrieval-Augmented Generation) step — the system retrieves real, current music from an external source rather than relying on a fixed internal list. Together, the Spotify API and the genre KB form a **two-source RAG pipeline**: one retrieves live tracks, the other supplies curated domain knowledge.
 
 Each retrieved track is then scored against the user's preferences using five weighted factors:
 
@@ -61,11 +65,21 @@ After seeing results, the user can mark individual tracks as Liked, Disliked, or
 
 ### Random Mode
 
-If the prompt contains no music signals (no genre, mood, or activity), or includes randomness-intent phrases like "surprise me" or "anything goes," the system picks two genres at random from a 20-genre pool, fetches tracks from Spotify, shuffles the results, and returns them as a discovery set rather than a preference-matched ranking.
+If the prompt contains no music signals (no genre, mood, or activity), or includes randomness-intent phrases like "surprise me" or "anything goes," the system picks two genres at random from a 21-genre pool, fetches tracks from Spotify, shuffles the results, and returns them as a discovery set rather than a preference-matched ranking.
 
 ---
 
 ## 4. Data
+
+### Knowledge Base — Genre Profiles (custom document)
+
+`data/genre_profiles.json` is a hand-authored collection of 23 genre profiles used to enrich Spotify queries before any live search is made.
+
+| Property | Details |
+|---|---|
+| Genres covered | afrobeats, pop, rock, hip-hop, jazz, electronic, indie, r&b, soul, funk, reggae, country, classical, lofi, ambient, folk, blues, metal, latin, dance, alternative, synthwave, acoustic |
+| Fields per profile | description, typical\_energy\_range, typical\_tempo\_bpm, common\_moods, activity\_contexts, related\_genres, spotify\_search\_terms, sub\_genres |
+| Purpose | Replaces bare genre name in Spotify query with curated search terms; provides genre description appended to explanations |
 
 ### Primary Source — Spotify Web API (live)
 
@@ -89,6 +103,8 @@ When Spotify is unavailable, the system falls back to `data/songs.csv`: a hand-c
 ---
 
 ## 5. Strengths
+
+- **Knowledge base enrichment** replaces bare genre names with curated Spotify search terms before any query is made. Searching for "lofi chill" becomes "lofi hip hop study beats chill" — the KB-enriched query consistently returns more on-target tracks than the raw user words would. The KB genre description is also shown alongside each result, giving the user context for unfamiliar genres.
 
 - **Natural language input** works well for common patterns: activity-based requests ("studying," "workout," "road trip"), mood-based requests ("something happy," "melancholy indie"), and genre-based requests ("lofi," "classical," "hip-hop").
 
@@ -120,7 +136,7 @@ When Spotify is unavailable, the system falls back to `data/songs.csv`: a hand-c
 
 ## 7. Evaluation
 
-### Automated Tests — 14 pytest tests
+### Automated Tests — 15 pytest tests
 
 | Test | What it verifies |
 |---|---|
@@ -133,7 +149,9 @@ When Spotify is unavailable, the system falls back to `data/songs.csv`: a hand-c
 | `test_extract_preferences_openai_unavailable_falls_back_without_crashing` | Graceful keyword fallback when OpenAI client is None |
 | `test_extract_preferences_uses_openai_structured_payload` | Mock OpenAI client returns rock/intense/high correctly parsed |
 | `test_recommend_songs_from_text_returns_explanations` | End-to-end: text input → ranked results with non-empty explanations |
-| Spotify: auth, search, normalization, query building | Spotify client handles tokens, HTTP responses, and deduplication |
+| Spotify: auth, search, normalization, track conversion | 4 tests — token flow, HTTP mocking, `SpotifyTrack` → song dict |
+| KB enrichment — pop query | KB expands "pop" to multi-term Spotify query, not bare genre name |
+| KB enrichment — lofi query | KB expands "lofi chill" to richer query than genre + mood alone |
 
 ### Manual Testing
 
@@ -151,7 +169,7 @@ Four CLI profiles from the original VibeFinder prototype were re-validated: Happ
 
 **Persistent feedback.** Storing liked and disliked signals between sessions (even in a lightweight local file or browser `localStorage`) would allow the nudge algorithm to improve over time rather than resetting on every new query.
 
-**Embedding-based genre similarity.** Replacing the binary genre match with cosine similarity over genre embeddings would allow partial credit for related genres, improving results for cross-genre requests.
+**Embedding-based genre similarity.** The knowledge base already maps related genres, but the scorer still treats genre match as binary (1.0 or 0.0). Replacing this with cosine similarity over genre embeddings — using the KB's `related_genres` field as training signal — would give partial credit for stylistically adjacent genres and improve cross-genre requests.
 
 **Multi-turn conversation.** Letting users refine a request through follow-up messages ("make it more acoustic," "something a bit slower") rather than submitting a single prompt each time would feel more natural.
 

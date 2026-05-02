@@ -80,8 +80,29 @@ def test_search_tracks_returns_normalized_tracks(mock_get_token, mock_get):
 
 def test_build_search_query_uses_extracted_terms():
     preferences = extract_preferences_from_text("happy pop music")
+    query = build_search_query(preferences)
 
-    assert build_search_query(preferences) == "pop happy"
+    # KB-enriched query should contain genre-specific Spotify search terms,
+    # not just the bare genre name "pop".
+    assert "pop" in query
+    assert query != "pop"                  # KB must have added more terms
+    assert len(query.split()) >= 2         # at least two tokens in the enriched query
+
+
+def test_build_search_query_kb_enrichment_improves_bare_genre():
+    """Verify KB enrichment produces a richer query than genre+mood alone."""
+    from src.recommender import ExtractedPreferences
+
+    bare_prefs = ExtractedPreferences(
+        genre="lofi", mood="chill", energy=0.4,
+        likes_acoustic=False, raw_text="lofi chill", search_terms=[],
+    )
+    query = build_search_query(bare_prefs)
+
+    # KB should expand "lofi" to include curated Spotify search terms
+    assert "lofi" in query
+    assert query != "lofi chill"           # enrichment changed the query
+    assert len(query.split()) > 2          # more than just genre + mood
 
 
 def test_spotify_track_to_song_dict_preserves_metadata():

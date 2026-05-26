@@ -1,0 +1,13 @@
+{
+	"servers": {
+		"containerization-assist": {
+			"type": "stdio",
+			"command": "/home/ejaifeobuks/.nvm/versions/node/v25.9.0/bin/npx",
+			"args": [
+				"-y",
+				"containerization-assist-mcp",
+				"start"
+			]
+		}
+	}
+}

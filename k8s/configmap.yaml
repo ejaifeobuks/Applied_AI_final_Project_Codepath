@@ -1,12 +1,14 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: app-config
-  namespace: default
+  name: applied-ai-final-project-codepath-config
+  namespace: applied-ai-final
   labels:
-    app: moodmatch
+    app.kubernetes.io/name: applied-ai-final-project-codepath
+    app.kubernetes.io/managed-by: containerization-assist
+  annotations:
+    com.azure.containerizationassist/version: 1.4.0
 data:
-  OPENAI_MODEL: "gpt-4.1-mini"
   STREAMLIT_SERVER_PORT: "8501"
   STREAMLIT_SERVER_ADDRESS: "0.0.0.0"
   STREAMLIT_SERVER_HEADLESS: "true"

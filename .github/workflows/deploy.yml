@@ -6,35 +6,30 @@ on:
       - main
   workflow_dispatch:
 
-env:
-  REGISTRY: obuksacr.azurecr.io
-  IMAGE_NAME: applied-ai-final-project-codepath
-  RESOURCE_GROUP: t-ogejaife-rg
-  CLUSTER_NAME: obuks-aks
-  NAMESPACE: applied-ai-final
-  MANIFEST_PATH: k8s
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
-permissions:
-  id-token: write
-  contents: read
+env:
+  ACR_RESOURCE_GROUP: t-ogejaife-rg
+  AZURE_CONTAINER_REGISTRY: obuksacr
+  CONTAINER_NAME: applied-ai-final-project-codepath
+  CLUSTER_NAME: obuks-aks
+  CLUSTER_RESOURCE_GROUP: t-ogejaife-rg
+  DEPLOYMENT_MANIFEST_PATH: k8s/
+  DOCKER_FILE: Dockerfile
+  BUILD_CONTEXT_PATH: .
+  NAMESPACE: default
 
 jobs:
-  build-and-push:
-    name: Build and push image to ACR
+  buildImage:
     runs-on: ubuntu-latest
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tag }}
-      image-ref: ${{ steps.meta.outputs.ref }}
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set image metadata
-        id: meta
-        run: |
-          TAG="${GITHUB_SHA::7}"
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "ref=${REGISTRY}/${IMAGE_NAME}:${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Azure login (OIDC)
         uses: azure/login@v2
@@ -43,32 +38,23 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: ACR login
-        run: az acr login --name "${REGISTRY%%.*}"
+      - name: Log into ACR
+        run: |
+          az acr login -n ${{ env.AZURE_CONTAINER_REGISTRY }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile
-          platforms: linux/amd64
-          push: true
-          tags: |
-            ${{ steps.meta.outputs.ref }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Build and push image to ACR
+        run: |
+          az acr build --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }} --registry ${{ env.AZURE_CONTAINER_REGISTRY }} -g ${{ env.ACR_RESOURCE_GROUP }} -f ${{ env.DOCKER_FILE }} ${{ env.BUILD_CONTEXT_PATH }}
 
   deploy:
-    name: Deploy to AKS
-    needs: build-and-push
+    needs: [buildImage]
     runs-on: ubuntu-latest
-    environment: production
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Azure login (OIDC)
@@ -78,32 +64,35 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Set AKS context
+      - name: Set up kubelogin for non-interactive login
+        uses: azure/use-kubelogin@v1
+        with:
+          kubelogin-version: "v0.0.25"
+
+      - name: Get K8s context
         uses: azure/aks-set-context@v4
         with:
-          resource-group: ${{ env.RESOURCE_GROUP }}
+          resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
           cluster-name: ${{ env.CLUSTER_NAME }}
-          use-kubelogin: true
+          admin: "false"
+          use-kubelogin: "true"
 
-      - name: Ensure namespace exists
-        run: |
-          kubectl create namespace "${NAMESPACE}" \
-            --dry-run=client -o yaml | kubectl apply -f -
-
-      - name: Deploy manifests
+      - name: Deploys application
         uses: Azure/k8s-deploy@v5
         with:
-          namespace: ${{ env.NAMESPACE }}
-          manifests: |
-            ${{ env.MANIFEST_PATH }}/configmap.yaml
-            ${{ env.MANIFEST_PATH }}/deployment.yaml
-            ${{ env.MANIFEST_PATH }}/service.yaml
+          action: deploy
+          manifests: ${{ env.DEPLOYMENT_MANIFEST_PATH }}
           images: |
-            ${{ needs.build-and-push.outputs.image-ref }}
-          strategy: basic
+            ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
+          namespace: ${{ env.NAMESPACE }}
 
-      - name: Verify rollout
+      - name: Annotate deployment
         run: |
-          kubectl rollout status deployment/applied-ai-final-project-codepath \
-            -n "${NAMESPACE}" --timeout=5m
-          kubectl get pods,svc -n "${NAMESPACE}"
+          if kubectl get deployment -n ${{ env.NAMESPACE }} --no-headers 2>/dev/null | grep -q .; then
+            kubectl annotate deployment --all -n ${{ env.NAMESPACE }} \
+              aks-project/pipeline-repo="${{ github.repository }}" \
+              aks-project/pipeline-workflow="${{ github.workflow }}" \
+              aks-project/deployed-by="vscode" \
+              aks-project/pipeline-run-url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              --overwrite
+          fi

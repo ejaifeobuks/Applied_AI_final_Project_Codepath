@@ -2,11 +2,7 @@
   "servers": {
     "containerization-assist": {
       "type": "stdio",
-      "command": "node",
-      "args": [
-        "/home/ejaifeobuks/containerization-assist/dist/src/cli/cli.js",
-        "start"
-      ],
+      "command": "containerization-assist-mcp",
       "env": { "DOCKER_SOCKET": "/var/run/docker.sock" }
     }
   }

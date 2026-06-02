@@ -2,32 +2,29 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: applied-ai-final-project-codepath
-  namespace: applied-ai-final
   labels:
     app.kubernetes.io/name: applied-ai-final-project-codepath
     app.kubernetes.io/component: web
-    app.kubernetes.io/managed-by: containerization-assist
+    app.kubernetes.io/part-of: applied-ai-final-project-codepath
   annotations:
-    com.azure.containerizationassist/version: 1.4.0
+    com.azure.containerizationassist/version: "1.4.0"
 spec:
-  replicas: 1
-  revisionHistoryLimit: 3
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: applied-ai-final-project-codepath
+  replicas: 2
+  revisionHistoryLimit: 5
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 1
       maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: applied-ai-final-project-codepath
   template:
     metadata:
       labels:
         app.kubernetes.io/name: applied-ai-final-project-codepath
         app.kubernetes.io/component: web
-        app.kubernetes.io/managed-by: containerization-assist
-      annotations:
-        com.azure.containerizationassist/version: 1.4.0
+        app.kubernetes.io/part-of: applied-ai-final-project-codepath
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -39,45 +36,43 @@ spec:
           type: RuntimeDefault
       containers:
         - name: app
-          image: obuksacr.azurecr.io/applied-ai-final-project-codepath:1.0.0
+          image: obuksacr.azurecr.io/applied-ai-final-project-codepath:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8501
               protocol: TCP
           envFrom:
-            - configMapRef:
-                name: applied-ai-final-project-codepath-config
             - secretRef:
                 name: app-secrets
+            - configMapRef:
+                name: app-config
           resources:
             requests:
-              cpu: 250m
-              memory: 512Mi
+              cpu: 200m
+              memory: 256Mi
             limits:
               cpu: 1000m
               memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /_stcore/health
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
-            timeoutSeconds: 3
-            failureThreshold: 3
-          livenessProbe:
-            httpGet:
-              path: /_stcore/health
-              port: http
-            initialDelaySeconds: 30
-            periodSeconds: 20
             timeoutSeconds: 5
             failureThreshold: 3
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false
-            runAsNonRoot: true
-            runAsUser: 1001
-            capabilities:
-              drop:
-                - ALL

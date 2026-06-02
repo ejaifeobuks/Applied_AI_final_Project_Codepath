@@ -2,14 +2,12 @@ apiVersion: v1
 kind: Service
 metadata:
   name: applied-ai-final-project-codepath
-  namespace: applied-ai-final
   labels:
     app.kubernetes.io/name: applied-ai-final-project-codepath
-    app.kubernetes.io/managed-by: containerization-assist
-  annotations:
-    com.azure.containerizationassist/version: 1.4.0
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: applied-ai-final-project-codepath
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app.kubernetes.io/name: applied-ai-final-project-codepath
   ports:

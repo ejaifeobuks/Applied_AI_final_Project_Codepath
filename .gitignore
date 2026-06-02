@@ -10,6 +10,41 @@ venv/
 
 # OS files
 .DS_Store
+Thumbs.db
+
+# Environment variables / secrets
 .env
-# Pytest cache
+.env.*
+!.env.example
+*.pem
+
+# Pytest cache / coverage
 .pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+
+# Type checkers / linters
+.mypy_cache/
+.ruff_cache/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE / editor
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
